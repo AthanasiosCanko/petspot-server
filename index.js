@@ -35,7 +35,7 @@ app.post('/log_in', function(req, res) {
     const username = req.params.username
     const password = req.params.password
 
-    // All responses - ERROR, INCORRECT_USERNAME, INCORRECT_PASSWORD, CORRECT_CREDENTIALS
+    // All responses - ERROR, INCORRECT_CREDENTIALS, CORRECT_CREDENTIALS
 
     // Search by username
     user.findOne({username: username}, function(err, item) {
@@ -43,7 +43,7 @@ app.post('/log_in', function(req, res) {
             console.log(err)
             res.json({message: 'ERROR'})
         }
-        else if (!item) res.json({message: 'INCORRECT_USERNAME'})
+        else if (!item) res.json({message: 'INCORRECT_CREDENTIALS'})
         else {
             let hash = item.password
 
@@ -55,7 +55,7 @@ app.post('/log_in', function(req, res) {
                 }
                 else {
                     if (result) res.json({message: 'CORRECT_CREDENTIALS'})
-                    else res.json({message: 'INCORRECT_PASSWORD'})
+                    else res.json({message: 'INCORRECT_CREDENTIALS'})
                 }
             })
         }
