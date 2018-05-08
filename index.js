@@ -31,7 +31,7 @@ app.get('/', function(req, res) {
     })
 })
 
-app.get('/:username/:password', function(req, res) {
+app.post('/log_in', function(req, res) {
     const username = req.params.username
     const password = req.params.password
 
