@@ -26,14 +26,15 @@ mongoose.connection.once("open", function() {
 app.use(bodyparser.urlencoded({extended: true}))
 
 app.get('/', function(req, res) {
-    res.json({
-        message: 'Hello!'
-    })
+    res.json({message: 'Hello!'})
 })
 
 app.post('/log_in', function(req, res) {
-    const username = req.params.username
-    const password = req.params.password
+    const username = req.body.username
+    const password = req.body.password
+
+    console.log(username)
+    console.log(password)
 
     // All responses - ERROR, INCORRECT_CREDENTIALS, CORRECT_CREDENTIALS
 
@@ -43,7 +44,10 @@ app.post('/log_in', function(req, res) {
             console.log(err)
             res.json({message: 'ERROR'})
         }
-        else if (!item) res.json({message: 'INCORRECT_CREDENTIALS'})
+        else if (!item) {
+            console.log("INCORRECT_CREDENTIALS_NO_ITEM")
+            res.json({message: 'INCORRECT_CREDENTIALS'})
+        }
         else {
             let hash = item.password
 
@@ -54,8 +58,15 @@ app.post('/log_in', function(req, res) {
                     res.json({message: 'ERROR'})
                 }
                 else {
-                    if (result) res.json({message: 'CORRECT_CREDENTIALS'})
-                    else res.json({message: 'INCORRECT_CREDENTIALS'})
+                    console.log(result)
+                    if (result) {
+                        console.log("CORRECT_CREDENTIALS")
+                        res.json({message: 'CORRECT_CREDENTIALS'})
+                    }
+                    else {
+                        console.log("INCORRECT_CREDENTIALS")
+                        res.json({message: 'INCORRECT_CREDENTIALS'})
+                    }
                 }
             })
         }
@@ -68,7 +79,11 @@ app.post('/sign_up', function(req, res) {
     const password = req.body.password
     const date = Date.now()
 
-    // All responses - ERROR, NO_HASH, NOT_CREATED, CREATED, FOUND
+    console.log(username)
+    console.log(email)
+    console.log(password)
+
+    // All responses - ERROR, NO_HASH, NOT_CREATED, CREATED, EMAIL_FOUND, USERNAME_FOUND
 
     // Search by username first
     user.findOne({username: username}, function(err, item) {
@@ -106,16 +121,28 @@ app.post('/sign_up', function(req, res) {
                                     console.log(err)
                                     res.json({message: 'ERROR'})
                                 }
-                                else if (!item) res.json({message: 'NOT_CREATED'})
-                                else res.json({message: 'CREATED'})
+                                else if (!item) {
+                                    console.log("NOT_CREATED")
+                                    res.json({message: 'NOT_CREATED'})
+                                }
+                                else {
+                                    console.log("CREATED")
+                                    res.json({message: 'CREATED'})
+                                }
                             })
                         }
                     })
                 }
-                else res.json({message: 'FOUND'})
+                else {
+                    console.log("EMAIL_FOUND")
+                    res.json({message: 'EMAIL_FOUND'})
+                }
             })
         }
-        else res.json({message: 'FOUND'})
+        else {
+            console.log("USERNAME_FOUND")
+            res.json({message: 'USERNAME_FOUND'})
+        }
     })
 })
 
