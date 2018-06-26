@@ -19,6 +19,7 @@ var userSchema = mongoose.Schema({
     pet_category: String,
     pet_type: String,
     friends: Array,
+    friend_requests: Array,
     date: Date
 })
 

@@ -63,7 +63,7 @@ app.post('/log_in', function(req, res) {
                     console.log(result)
                     if (result) {
                         console.log("CORRECT_CREDENTIALS")
-                        res.json({message: 'CORRECT_CREDENTIALS'})
+                        res.json({message: 'CORRECT_CREDENTIALS', user: item})
                     }
                     else {
                         console.log("INCORRECT_CREDENTIALS")
@@ -227,6 +227,69 @@ app.get("/db_seed/:command", function(req, res) {
     if (command == "seed") seed_user(seed_users)
     else if (command == "reset") reset_seed(seed_users)
     else res.json({message: "Unknown command."})
+})
+
+app.post("/send_request", function(req, res) {
+    let username = req.body.username
+    let request_username = req.body.request_username
+
+    // All responses - ERROR, NOT_FOUND, NOT_UPDATED, UPDATED, ALREADY_SENT, YOURSELF
+    if (username == request_username) {
+        res.json({message: "YOURSELF"})
+    }
+    else {
+        user.findOne({username: username}, function(err, item) {
+            if (err) {
+                console.log(err)
+                res.json({message: "ERROR"})
+            }
+            else if (!item) {
+                res.json({message: "NOT_FOUND"})
+            }
+            else if (item) {
+                var found = false
+                var friend_requests = item.friend_requests
+
+                for (var i = 0; i < friend_requests.length; i += 1) {
+                    if (friend_requests[i] == request_username) {
+                        console.log(item)
+                        console.log(request_username)
+                        found = true
+                    }
+                }
+
+                if (found == false) {
+                    friend_requests.push(request_username)
+
+                    user.findOneAndUpdate(
+                        {username: username},
+                        {friend_requests: friend_requests},
+                        {new: true},
+                        function(err, item) {
+                            if (err) {
+                                console.log(err)
+                                res.json({message: "ERROR"})
+                            }
+                            else if (!item) {
+                                res.json({message: "NOT_UPDATED"})
+                            }
+                            else if (item) {
+                                res.json({message: "UPDATED"})
+                            }
+                            else {
+                                res.json({message: "ERROR"})
+                            }
+                    })
+                }
+                else {
+                    res.json({message: "ALREADY_SENT"})
+                }
+            }
+            else {
+                res.json({message: "ERROR"})
+            }
+        })
+    }
 })
 
 app.post("/search", function(req, res) {
