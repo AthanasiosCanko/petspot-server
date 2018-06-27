@@ -36,7 +36,6 @@ app.post('/log_in', function(req, res) {
     const password = req.body.password
 
     console.log("USERNAME: " + username)
-    // console.log("PASSWORD: " + password)
 
     // All responses - ERROR, INCORRECT_CREDENTIALS, CORRECT_CREDENTIALS
 
@@ -238,6 +237,7 @@ app.post("/send_request", function(req, res) {
         res.json({message: "YOURSELF"})
     }
     else {
+        // Check if request already sent, or user is already a friend
         user.findOne({username: username}, function(err, item) {
             if (err) {
                 console.log(err)
@@ -248,22 +248,28 @@ app.post("/send_request", function(req, res) {
             }
             else if (item) {
                 var found = false
-                var friend_requests = item.friend_requests
+                var sent_requests = item.sent_requests
+                var friends = item.friends
 
-                for (var i = 0; i < friend_requests.length; i += 1) {
-                    if (friend_requests[i] == request_username) {
-                        console.log(item)
-                        console.log(request_username)
+                for (var i = 0; i < sent_requests.length; i += 1) {
+                    if (sent_requests[i] == request_username) {
+                        found = true
+                    }
+                }
+
+                for (var i = 0; i < friends.length; i += 1) {
+                    if (friends[i] == request_username) {
                         found = true
                     }
                 }
 
                 if (found == false) {
-                    friend_requests.push(request_username)
+                    sent_requests.push(request_username)
 
+                    // Add other user to list of sent requests
                     user.findOneAndUpdate(
                         {username: username},
-                        {friend_requests: friend_requests},
+                        {sent_requests: sent_requests},
                         {new: true},
                         function(err, item) {
                             if (err) {
@@ -274,7 +280,45 @@ app.post("/send_request", function(req, res) {
                                 res.json({message: "NOT_UPDATED"})
                             }
                             else if (item) {
-                                res.json({message: "UPDATED"})
+
+                                // Add your username to other user's list of friend requests
+                                user.findOne({username: request_username}, function(err, item) {
+                                    if (err) {
+                                        console.log(err)
+                                        res.json({message: "ERROR"})
+                                    }
+                                    else if (!item) {
+                                        res.json({message: "NOT_UPDATED"})
+                                    }
+                                    else if (item) {
+                                        var friend_requests = item.friend_requests
+                                        friend_requests.push(username)
+
+                                        user.findOneAndUpdate(
+                                            {username: request_username},
+                                            {friend_requests: friend_requests},
+                                            {new: true},
+                                            function(err, item) {
+                                                if (err) {
+                                                    console.log(err)
+                                                    res.json({message: "ERROR"})
+                                                }
+                                                else if (!item) {
+                                                    res.json({message: "NOT_UPDATED"})
+                                                }
+                                                else if (item) {
+                                                    res.json({message: "UPDATED"})
+                                                }
+                                                else {
+                                                    res.json({message: "ERROR"})
+                                                }
+                                            }
+                                        )
+                                    }
+                                    else {
+                                        res.json({message: "ERROR"})
+                                    }
+                                })
                             }
                             else {
                                 res.json({message: "ERROR"})
@@ -290,6 +334,26 @@ app.post("/send_request", function(req, res) {
             }
         })
     }
+})
+
+app.post("/user_data", function(req, res) {
+    let username = req.body.username
+
+    user.findOne({username: username}, function(err, item) {
+        if (err) {
+            console.log(err)
+            res.json({message: "ERROR"})
+        }
+        else if (!item) {
+            res.json({message: "NOT_FOUND"})
+        }
+        else if (item) {
+            res.json({message: "FOUND", user: item})
+        }
+        else {
+            res.json({message: "ERROR"})
+        }
+    })
 })
 
 app.post("/search", function(req, res) {

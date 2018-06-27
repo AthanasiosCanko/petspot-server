@@ -20,6 +20,7 @@ var userSchema = mongoose.Schema({
     pet_type: String,
     friends: Array,
     friend_requests: Array,
+    sent_requests: Array,
     date: Date
 })
 
