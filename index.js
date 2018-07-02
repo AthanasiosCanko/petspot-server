@@ -9,6 +9,7 @@ var db_password = process.env.DB_PASSWORD || require('./data').db_password
 var seed_users = require('./seed').seed_users
 
 var user = require("./schemas").user
+var pin = require("./schemas").pin
 
 // vars
 var app = new express()
@@ -356,6 +357,109 @@ app.post("/user_data", function(req, res) {
     })
 })
 
+app.post("/accept_request", function(req, res) {
+    let username = req.body.username
+    let request_username = req.body.request_username
+
+    console.log(username)
+    console.log(request_username)
+
+    user.findOne({username: username}, function(err, item) {
+        if (err) {
+            console.log(err)
+            res.json({message: "ERROR"})
+        }
+        else if (!item) {
+            res.json({message: "USER_NOT_FOUND"})
+        }
+        else if (item) {
+            var friends = item.friends
+            var friend_requests = item.friend_requests
+
+            friends.push(request_username)
+
+            for (var i = 0; i < friend_requests.length; i += 1) {
+                if (friend_requests[i] == request_username) {
+                    friend_requests.splice(i, 1)
+                    break
+                }
+            }
+
+            user.findOneAndUpdate(
+                {username: username},
+                {friends: friends, friend_requests: friend_requests},
+                {new: true},
+                function(err, item) {
+                    if (err) {
+                        console.log(err)
+                        res.json({message: "ERROR"})
+                    }
+                    else if (!item) {
+                        res.json({message: "USER_NOT_FOUND"})
+                    }
+                    else if (item) {
+                        user.findOne(
+                            {username: request_username},
+                            function(err, item) {
+                                if (err) {
+                                    console.log(err)
+                                    res.json({message: "ERROR"})
+                                }
+                                else if (!item) {
+                                    res.json({message: "USER_NOT_FOUND"})
+                                }
+                                else if (item) {
+                                    var friends = item.friends
+                                    var sent_requests = item.sent_requests
+
+                                    friends.push(username)
+
+                                    for (var i = 0; i < sent_requests.length; i += 1) {
+                                        if (sent_requests[i] == username) {
+                                            sent_requests.splice(i, 1)
+                                            break
+                                        }
+                                    }
+
+                                    console.log(username)
+                                    console.log(sent_requests)
+
+                                    user.findOneAndUpdate(
+                                        {username: request_username},
+                                        {friends: friends, sent_requests: sent_requests},
+                                        {new: true},
+                                    function(err, item) {
+                                        if (err) {
+                                            console.log(err)
+                                            res.json({message: "ERROR"})
+                                        }
+                                        else if (!item) {
+                                            res.json({message: "USER_NOT_FOUND"})
+                                        }
+                                        else if (item) {
+                                            res.json({message: "SUCCESS"})
+                                        }
+                                        else {
+                                            res.json({message: "ERROR"})
+                                        }
+                                    })
+                                }
+                                else {
+                                    res.json({message: "ERROR"})
+                                }
+                            })
+                    }
+                    else {
+                        res.json({message: err})
+                    }
+                })
+        }
+        else {
+            res.json({message: "ERROR"})
+        }
+    })
+})
+
 app.post("/search", function(req, res) {
     let query = req.body
     console.log(query)
@@ -376,6 +480,114 @@ app.post("/search", function(req, res) {
             else {
                 res.json({message: "ERROR"})
             }
+        }
+    })
+})
+
+app.post("/add_pin", function(req, res) {
+    let username = req.body.username
+    let city = req.body.city
+    let latitude = Number(req.body.latitude)
+    let longitude = Number(req.body.longitude)
+
+    pin.create({
+        username: username,
+        city: city,
+        latitude: latitude,
+        longitude: longitude
+    }, function(err, item) {
+        if (err) {
+            console.log(err)
+            res.json({message: "ERROR"})
+        }
+        else if (!item) {
+            res.json({message: "NOT_FOUND"})
+        }
+        else if (item) {
+            res.json({message: "FOUND"})
+        }
+        else {
+            res.json({message: "ERROR"})
+        }
+    })
+})
+
+app.post("/city_pins", function(req, res) {
+    let city = req.body.city
+
+    pin.find({city: city}, function(err, item) {
+        if (err) {
+            console.log(err)
+            res.json({message: "ERROR"})
+        }
+        else if (!item) {
+            res.json({message: "NOT_FOUND"})
+        }
+        else {
+            res.json({message: "FOUND", pins: item})
+        }
+    })
+})
+
+app.post("/change_password", function(req, res) {
+    let username = req.body.username
+    let old_password = req.body.old_password
+    let new_password = req.body.new_password
+
+    user.findOne({username: username}, function(err, item) {
+        if (err) {
+            console.log(err)
+            res.json({message: "ERROR"})
+        }
+        else if (!item) {
+            res.json({message: "NOT_FOUND"})
+        }
+        else if (item) {
+            let hash = item.password
+
+            // If username found, compare password and hash
+            bcrypt.compare(old_password, hash, function(err, result) {
+                if (err) {
+                    console.log(err)
+                    res.json({message: 'ERROR'})
+                }
+                else {
+                    console.log(result)
+                    if (result) {
+                        bcrypt.hash(new_password, 12, function(err, hash) {
+                            if (err) {
+                                console.log(err)
+                                res.json({message: "ERROR"})
+                            }
+                            else {
+                                user.findOneAndUpdate(
+                                    {username: username},
+                                    {password: hash},
+                                    {new: true},
+                                    function(err, item) {
+                                        if (err) {
+                                            console.log(err)
+                                            res.json({message: "ERROR"})
+                                        }
+                                        else if (!item) {
+                                            res.json({message: "NOT_FOUND"})
+                                        }
+                                        else if (item) {
+                                            res.json({message: "PASSWORD_CHANGED"})
+                                        }
+                                        else {
+                                            res.json({message: "ERROR"})
+                                        }
+                                    }
+                                )
+                            }
+                        })
+                    }
+                    else {
+                        res.json({message: 'OLD_PASSWORD_NO_MATCH'})
+                    }
+                }
+            })
         }
     })
 })
